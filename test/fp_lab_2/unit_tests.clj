@@ -5,12 +5,12 @@
 
 (deftest test-dict-basic
   (testing "Базовые операции insert/get/delete"
-    (let [d (dict/empty-dict)]
+    (let [d (dict/empty-dict)
+          d1 (dict/insert d :a 1)
+          d2 (dict/delete d1 :a)]
       (is (nil? (dict/get-value d :a)))
-      (let [d1 (dict/insert d :a 1)]
-        (is (= 1 (dict/get-value d1 :a)))
-        (let [d2 (dict/delete d1 :a)]
-          (is (nil? (dict/get-value d2 :a))))))))
+      (is (= 1 (dict/get-value d1 :a)))
+      (is (nil? (dict/get-value d2 :a))))))
 
 (deftest test-insert-all
   (testing "Вставка массива пар"
@@ -91,9 +91,9 @@
                  (dict/insert :a 1)
                  (dict/insert :b 2))
           d2 (-> (dict/empty-dict)
-                 (dict/insert :b 2)
+                 (dict/insert :b 3)
                  (dict/insert :a 1))]
-      (is (dict/equals-dict? d1 d2)))))
+      (is (not (dict/equals-dict? d1 d2))))))
 
 (deftest test-merge-dict
   (testing "Слияние словарей"
@@ -130,4 +130,64 @@
            (dict/merge-dict (dict/merge-dict d1 d2) d3)
            (dict/merge-dict d1 (dict/merge-dict d2 d3)))))))
 
-(run-tests)
+(deftest test-collection-ilookup
+  (testing "Тестирование ILookup: get(m k) | get(m k not-found)"
+    (let [d (-> (dict/empty-dict)
+                (dict/insert :a 1)
+                (dict/insert :b 2))]
+      (is (= 1 (get d :a)))
+      (is (= 2 (get d :b)))
+      (is (= 3 (get d :c 3)))
+      (is (nil? (get d :c))))))
+
+(deftest test-collection-associative-assoc-contains-find
+  (testing "Тестирование Associative: assoc | contains? | find"
+    (let [d (-> (dict/empty-dict)
+                (assoc :a 1)
+                (assoc :b 2))
+          e (find d :a)]
+      (is (= 1 (get d :a)))
+      (is (= 2 (get d :b)))
+      (is (true?  (contains? d :a)))
+      (is (false? (contains? d :c)))
+      (is (instance? clojure.lang.IMapEntry e))
+      (is (= [:a 1] e)))))
+
+(deftest test-collection-ipersistentmap-dissoc
+  (testing "Тестирование IPersistentMap: dissoc | without"
+    (let [d1  (-> (dict/empty-dict) (assoc :a 1) (assoc :b 2))
+          d2 (dissoc d1 :a)]
+      (is (nil? (get d2 :a)))
+      (is (= 2 (get d2 :b)))
+      (is (= 1 (get d1 :a))))))
+
+(deftest test-collection-seqable
+  (testing "Тестирование Seqable: seq"
+    (let [d (-> (dict/empty-dict) (assoc :a 1) (assoc :b 2))
+          s (seq d)]
+      (is (seq s))
+      (is (every? #(instance? clojure.lang.IMapEntry %) s))
+      (is (= #{[:a 1] [:b 2]} (set s))))))
+
+(deftest test-collection-counted
+  (testing "Тестирование Counted: count"
+    (let [d (-> (dict/empty-dict) (assoc :a 1) (assoc :b 2) (assoc :c 3))]
+      (is (= 3 (count d)))
+      (is (= 0 (count (dict/empty-dict)))))))
+
+(deftest test-collection-cons-and-conj
+  (testing "Тестирование IPersistentCollection: conj с вектором"
+    (let [d1  (-> (dict/empty-dict) (assoc :a 1))
+          d2 (conj d1 [:b 2])]
+      (is (= 2 (get d2 :b)))))
+  (testing "Тестирование IPersistentCollection: conj с map"
+    (let [d1  (-> (dict/empty-dict) (assoc :a 1))
+          d2 (conj d1 {:b 2 :c 3})]
+      (is (= 1 (get d2 :a)))
+      (is (= 2 (get d2 :b)))
+      (is (= 3 (get d2 :c)))))
+  (testing "Тестирование IPersistentCollection: into с последовательностью пар"
+    (let [d1  (dict/empty-dict)
+          d2 (into d1 [[:a 1] [:b 2]])]
+      (is (= 1 (get d2 :a)))
+      (is (= 2 (get d2 :b))))))

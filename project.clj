@@ -10,4 +10,6 @@
             [jonase/eastwood "1.4.3"],
             [com.github.clj-kondo/lein-clj-kondo "0.2.5"]]
   :profiles {:uberjar {:aot :all
-                       :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}})
+                       :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}
+             :test {:injections [(require 'fp-lab-2.pretty-reporter) 
+                                 (require 'fp-lab-2.assertions)]}})
